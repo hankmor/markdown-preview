@@ -1,0 +1,348 @@
+/* 微信公众号风格样式 */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: #333;
+    background: #f5f5f5;
+}
+
+/* 工具栏 */
+.toolbar {
+    position: sticky;
+    top: 0;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.btn-back {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-back:hover {
+    background: #e0e0e0;
+}
+
+.btn-copy {
+    background: #07c160;
+    color: white;
+    font-weight: 500;
+}
+
+.btn-copy:hover {
+    background: #06ad56;
+}
+
+/* 文章容器 */
+.article-wrapper {
+    max-width: 750px;
+    margin: 30px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* 文章头部 */
+.article-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.article-header h1 {
+    font-size: 26px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.article-meta {
+    font-size: 13px;
+    color: #999;
+}
+
+.series-tag {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* 文章内容 */
+.article-content {
+    color: #333;
+}
+
+/* 标题 */
+.article-content h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 30px 0 20px;
+    color: #2c3e50;
+    line-height: 1.4;
+}
+
+.article-content h2 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 25px 0 15px;
+    color: #34495e;
+    line-height: 1.4;
+}
+
+.article-content h3 {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 20px 0 12px;
+    color: #34495e;
+    line-height: 1.4;
+}
+
+.article-content h4 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 18px 0 10px;
+    color: #34495e;
+}
+
+/* 段落 */
+.article-content p {
+    margin: 15px 0;
+    text-align: justify;
+    word-break: break-word;
+}
+
+/* 强调 */
+.article-content strong {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.article-content em {
+    font-style: italic;
+    color: #555;
+}
+
+/* 链接 */
+.article-content a {
+    color: #3498db;
+    text-decoration: none;
+    border-bottom: 1px solid #3498db;
+    transition: all 0.3s;
+}
+
+.article-content a:hover {
+    color: #2980b9;
+    border-bottom-color: #2980b9;
+}
+
+/* 列表 */
+.article-content ul,
+.article-content ol {
+    padding-left: 25px;
+    margin: 15px 0;
+    line-height: 1.8;
+}
+
+.article-content li {
+    margin: 10px 0;
+    line-height: 1.8;
+    display: list-item;
+}
+
+.article-content ul li {
+    list-style-type: disc;
+}
+
+.article-content ol li {
+    list-style-type: decimal;
+}
+
+/* 列表项中的强调文本后添加间距 */
+.article-content li strong {
+    margin-right: 4px;
+}
+
+/* 列表项加粗样式（用于微信兼容性） */
+.article-content .li-bold {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-right: 4px;
+    display: inline; /* 强制内联 */
+}
+
+/* 列表内容包裹层，防止换行 */
+.article-content .li-text {
+    display: inline;
+    line-height: 1.8;
+}
+
+/* 引用块 */
+.article-content blockquote {
+    border-left: 4px solid #42b983;
+    background: #f9f9f9;
+    padding: 12px 16px;
+    margin: 20px 0;
+    color: #666;
+    border-radius: 4px;
+}
+
+.article-content blockquote p {
+    margin: 8px 0;
+}
+
+/* 代码 */
+.article-content code {
+    font-family: "SF Mono", Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 14px;
+    background: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #e83e8c;
+}
+
+.article-content pre {
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 20px 0;
+    border: 1px solid #e1e4e8;
+    line-height: 1.5;
+}
+
+.article-content pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    font-family: inherit;
+}
+
+/* 表格 */
+.article-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+.article-content table thead {
+    background: #f6f8fa;
+}
+
+.article-content table th,
+.article-content table td {
+    border: 1px solid #dfe2e5;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.article-content table th {
+    font-weight: 600;
+    color: #24292e;
+}
+
+/* 图片 */
+.article-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 水平线 */
+.article-content hr {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 30px 0;
+}
+
+/* 使用说明 */
+.notice {
+    max-width: 750px;
+    margin: 20px auto 40px;
+    background: #fff9e6;
+    border: 1px solid #ffe58f;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.notice p {
+    margin-bottom: 10px;
+    color: #5c4a00;
+}
+
+.notice ol {
+    margin-left: 20px;
+    color: #5c4a00;
+}
+
+.notice li {
+    margin: 8px 0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .article-wrapper {
+        padding: 20px;
+        margin: 15px;
+    }
+
+    .article-header h1 {
+        font-size: 22px;
+    }
+
+    .article-content h1 {
+        font-size: 20px;
+    }
+
+    .article-content h2 {
+        font-size: 18px;
+    }
+
+    .article-content h3 {
+        font-size: 16px;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}

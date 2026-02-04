@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章列表 - 微信公众号预览工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .series-group {
+            margin-bottom: 40px;
+        }
+
+        .series-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .article-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+        }
+
+        .article-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .article-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .article-meta {
+            font-size: 13px;
+            color: #95a5a6;
+        }
+
+        .article-meta span {
+            margin-right: 15px;
+        }
+
+        .icon {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 文章列表</h1>
+        <p class="subtitle">点击文章查看微信公众号预览效果</p>
+
+        {{ range $series, $articleList := .groupedArticles }}
+        <div class="series-group">
+            <h2 class="series-title">{{ $series }}</h2>
+            {{ range $articleList }}
+            <a href="/article/{{ .ID }}" class="article-card">
+                <div class="article-title">{{ .Title }}</div>
+                <div class="article-meta">
+                    <span><span class="icon">📅</span>{{ .UpdatedAt.Format "2006-01-02" }}</span>
+                    <span><span class="icon">📂</span>{{ .Series }}</span>
+                </div>
+            </a>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+</body>
+</html>
