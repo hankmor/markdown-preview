@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/hankmor/mymedia/tools/wechat-preview/config"
 )
 
 // PublishResult 发布结果
@@ -82,10 +84,14 @@ func PublishArticle(postPath string, projectRoot string) (*PublishResult, error)
 		uniquePaths[cleanPath] = true
 
 		// 构造远程路径
-		// 策略：为了避免重名，可以使用 hash，或者保留目录结构
-		// 这里简单起见，保留相对于 projectRoot 的路径
-		// 例如: posts/02-openclaw/images/foo.png
+		// 由于 rootPath 就是 postsDir，所以 remotePath 就是相对于 posts 目录的路径 (e.g. 02-openclaw/images/foo.png)
 		remotePath, _ := filepath.Rel(projectRoot, absPath)
+        
+        // 如果配置了 GitHubPathPrefix，直接拼接在最前面
+        // e.g. <prefix>/02-openclaw/...
+        if config.AppConfig.GitHubPathPrefix != "" {
+            remotePath = filepath.Join(config.AppConfig.GitHubPathPrefix, remotePath)
+        }
 
 		// 同步上传
 		cdnURL, err := uploader.Upload(absPath, remotePath)

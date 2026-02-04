@@ -1,9 +1,12 @@
 package main
 
 import (
+	"embed"
+	"flag"
 	"fmt"
 	"html/template"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,13 +25,18 @@ import (
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 )
 
+//go:embed web
+var embedFS embed.FS
+
+// Article 文章元数据
+
 // Article 文章元数据
 type Article struct {
 	ID        string    `json:"id"`
 	Title     string    `json:"title"`
 	Series    string    `json:"series"`
 	Path      string    `json:"path"`
-    RelPath   string    `json:"relPath"` // 相对 posts 的路径，用于定位图片
+	RelPath   string    `json:"relPath"` // 相对 posts 的路径，用于定位图片
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
@@ -40,10 +48,9 @@ type ArticleDetail struct {
 }
 
 var (
-	postsDir = "../../posts" // 相对于 tools/wechat-preview 的路径
-    projectRoot = "../../"
-	articles []Article
-	md       goldmark.Markdown
+	postsDir    string // 相对于 tools/wechat-preview 的路径
+	articles    []Article
+	md          goldmark.Markdown
 )
 
 func init() {
@@ -54,12 +61,12 @@ func init() {
 			extension.Table, // 表格
 			extension.Strikethrough,
 			extension.TaskList,
-            highlighting.NewHighlighting(
-                highlighting.WithStyle("monokai"), // 使用高对比度主题
-                highlighting.WithFormatOptions(
-                    chromahtml.WithLineNumbers(false), // 微信里行号可能样式混乱，先关闭
-                ),
-            ),
+			highlighting.NewHighlighting(
+				highlighting.WithStyle("monokai"), // 使用高对比度主题
+				highlighting.WithFormatOptions(
+					chromahtml.WithLineNumbers(false), // 微信里行号可能样式混乱，先关闭
+				),
+			),
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
@@ -67,47 +74,92 @@ func init() {
 		goldmark.WithRendererOptions(
 			html.WithHardWraps(),
 			html.WithXHTML(),
-            html.WithUnsafe(), // 允许 HTML 标签
+			html.WithUnsafe(), // 允许 HTML 标签
 		),
 	)
 }
 
 func main() {
-    config.Load() // 加载配置
+	// 1. 解析命令行参数
+	dirFlag := flag.String("dir", "", "Markdown articles directory (default: current directory)")
+	portFlag := flag.String("port", "8080", "Server port")
+	flag.Parse()
+
+	config.Load() // 加载配置
+
+	// 2. 确定文章目录优先级：CLI > Env > Default(Current Dir)
+	if *dirFlag != "" {
+		postsDir = *dirFlag
+	} else if config.AppConfig.PostsDir != "" {
+		postsDir = config.AppConfig.PostsDir
+	} else {
+		// 默认为当前目录
+		wd, _ := os.Getwd()
+		postsDir = wd
+	}
+
+	// 转换为绝对路径，方便后续处理
+	absPostsDir, err := filepath.Abs(postsDir)
+	if err != nil {
+		fmt.Printf("Error getting absolute path for %s: %v\n", postsDir, err)
+		os.Exit(1)
+	}
+	postsDir = absPostsDir
+
+	fmt.Printf("Using Posts Dir: %s\n", postsDir)
 
 	// 扫描文章
 	if err := scanArticles(); err != nil {
 		fmt.Printf("扫描文章失败: %v\n", err)
 		os.Exit(1)
 	}
-    
-    fmt.Println("\n========================================")
-    fmt.Println("   Wechat Preview Tool - v2.1 Debug Mode")
-    fmt.Printf("   Articles: %d\n", len(articles))
-    fmt.Println("========================================\n")
+
+	fmt.Println("\n========================================")
+	fmt.Printf("   Wechat Preview Tool - CLI Mode\n")
+	fmt.Printf("   Articles: %d\n", len(articles))
+	fmt.Printf("   Scanning: %s\n", postsDir)
+	fmt.Println("========================================\n")
 
 	// 初始化 Gin
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
 
-	// 静态文件服务
-	r.Static("/static", "./web/static")
-    
-    // 核心修改：映射 posts 目录为静态资源，用于预览本地图片
-    // 访问 /posts-static/02-openclaw/images/foo.png -> ../../posts/02-openclaw/images/foo.png
-    r.Static("/posts-static", postsDir)
-    
-	r.LoadHTMLGlob("web/templates/*")
+	// 3. 处理静态资源 (Embed)
+	// web/static -> /static
+	staticFS, _ := fs.Sub(embedFS, "web/static")
+	r.StaticFS("/static", http.FS(staticFS))
+
+	// 核心修改：映射 posts 目录为静态资源，用于预览本地图片
+	r.Static("/posts-static", postsDir)
+
+	// 4. 处理模板 (Embed)
+	// web/templates -> templates
+	templatesFS, _ := fs.Sub(embedFS, "web/templates")
+	r.SetHTMLTemplate(loadTemplates(templatesFS))
 
 	// 路由
 	r.GET("/", handleList)
 	r.GET("/article/:id", handleArticle)
 	r.GET("/api/articles", apiArticles)
 	r.GET("/api/articles/:id", apiArticleDetail)
-    r.POST("/api/publish/:id", handlePublish) // 新增发布接口
+	r.POST("/api/publish/:id", handlePublish)
 
 	// 启动服务
-	fmt.Println("服务启动成功！访问 http://localhost:8080")
-	r.Run(":8080")
+	addr := ":" + *portFlag
+	fmt.Printf("Starting server on http://localhost%s\n", addr)
+	fmt.Printf("Press Ctrl+C to stop.\n")
+	r.Run(addr)
+}
+
+// loadTemplates 从 embed.FS 加载模板
+func loadTemplates(fs fs.FS) *template.Template {
+	// Gin 的 LoadHTMLGlob 不支持 FS，需要手动 ParseFS
+	tmpl, err := template.ParseFS(fs, "*.html")
+	if err != nil {
+		panic(err)
+	}
+	return tmpl
 }
 
 // scanArticles 扫描文章目录
@@ -159,7 +211,7 @@ func scanArticles() error {
 			Title:     title,
 			Series:    series,
 			Path:      path,
-            RelPath:   relPath,
+			RelPath:   relPath,
 			UpdatedAt: updatedAt,
 		})
 
@@ -181,17 +233,17 @@ func extractTitle(content string) string {
 
 // removeTitle 移除内容中的第一个 H1 标题
 func removeTitle(content string) string {
-    lines := strings.Split(content, "\n")
-    var newLines []string
-    removed := false
-    for _, line := range lines {
-        if !removed && strings.HasPrefix(strings.TrimSpace(line), "# ") {
-            removed = true
-            continue
-        }
-        newLines = append(newLines, line)
-    }
-    return strings.Join(newLines, "\n")
+	lines := strings.Split(content, "\n")
+	var newLines []string
+	removed := false
+	for _, line := range lines {
+		if !removed && strings.HasPrefix(strings.TrimSpace(line), "# ") {
+			removed = true
+			continue
+		}
+		newLines = append(newLines, line)
+	}
+	return strings.Join(newLines, "\n")
 }
 
 // handleList 文章列表页面
@@ -209,7 +261,7 @@ func handleList(c *gin.Context) {
 
 // handleArticle 文章详情页面
 func handleArticle(c *gin.Context) {
-    fmt.Println(">>> Entering handleArticle")
+	fmt.Println(">>> Entering handleArticle")
 	id := c.Param("id")
 
 	// 查找文章
@@ -233,8 +285,8 @@ func handleArticle(c *gin.Context) {
 		return
 	}
 
-    // 移除标题 (H1)
-    markdownContent := removeTitle(string(content))
+	// 移除标题 (H1)
+	markdownContent := removeTitle(string(content))
 
 	var buf strings.Builder
 	if err := md.Convert([]byte(markdownContent), &buf); err != nil {
@@ -244,73 +296,73 @@ func handleArticle(c *gin.Context) {
 
 	// 1. 列表项优化 (strong -> span, li wrap)
 	htmlContent := buf.String()
-	
+
 	// 先替换 strong 为 span class="li-bold"
 	reStrong := regexp.MustCompile(`<li><strong>([^<]+)</strong>`)
 	htmlContent = reStrong.ReplaceAllString(htmlContent, `<li><span class="li-bold">$1</span>`)
-	
+
 	// 将 li 内部的所有内容包裹在 <span class="li-text"> 中
 	reLiContent := regexp.MustCompile(`<li>(.*?)</li>`)
 	htmlContent = reLiContent.ReplaceAllString(htmlContent, `<li><span class="li-text">$1</span></li>`)
 
-    // 2. 本地图片路径修正 (仅用于预览)
-    // 假设图片引用是 relative path: ![](./images/foo.png) or ![](images/foo.png)
-    // 需要替换为 /posts-static/<article-dir>/images/foo.png
-    articleDir := filepath.Dir(article.RelPath)
-    
-    // 调试日志：打印文章目录
-    fmt.Printf("Debug: Article Dir for %s is %s\n", article.ID, articleDir)
+	// 2. 本地图片路径修正 (仅用于预览)
+	// 假设图片引用是 relative path: ![](./images/foo.png) or ![](images/foo.png)
+	// 需要替换为 /posts-static/<article-dir>/images/foo.png
+	articleDir := filepath.Dir(article.RelPath)
 
-    // 正则匹配 img src，排除 http 开头的
-    // 匹配 src="xxx" 或 src='xxx'
-    reImg := regexp.MustCompile(`src=["']([^"']+)["']`)
-    
-    // 调试：打印替换前的部分内容
-    if len(htmlContent) > 200 {
-         fmt.Printf("Debug: Before replace (snippet): %s\n", htmlContent[:200])
-    }
-    
-    htmlContent = reImg.ReplaceAllStringFunc(htmlContent, func(match string) string {
-        // match: src="./images/foo.png"
-        fmt.Printf("Debug: Matched img tag: %s\n", match)
-        
-        // 提取引号内的内容
-        parts := strings.SplitN(match, "=", 2)
-        if len(parts) != 2 {
-            return match
-        }
-        quote := parts[1][0:1]
-        src := parts[1][1 : len(parts[1])-1]
+	// 调试日志：打印文章目录
+	fmt.Printf("Debug: Article Dir for %s is %s\n", article.ID, articleDir)
 
-        // 忽略绝对路径和网络路径
-        if strings.HasPrefix(src, "/") || strings.HasPrefix(src, "http") {
-             fmt.Printf("Debug: Skipping abs/remote path: %s\n", src)
-            return match
-        }
-        
-        // 拼接静态资源前缀
-        cleanDir := strings.ReplaceAll(articleDir, string(os.PathSeparator), "/")
-        
-        // 处理 ./ 前缀
-        cleanSrc := src
-        if strings.HasPrefix(src, "./") {
-            cleanSrc = src[2:]
-        }
-        
-        newSrc := fmt.Sprintf("/posts-static/%s/%s", cleanDir, cleanSrc)
-        newTag := fmt.Sprintf(`src=%s%s%s`, quote, newSrc, quote)
-        
-        fmt.Printf("Debug: Replaced to: %s\n", newTag)
-        return newTag
-    })
-    
-    // 调试：打印替换后的部分内容
-    // 查找是否包含 posts-static
-    if strings.Contains(htmlContent, "/posts-static/") {
-        fmt.Printf("Debug: Success! Found /posts-static/ in HTML\n")
-    } else {
-        fmt.Printf("Debug: Warning! /posts-static/ NOT found in HTML\n")
-    }
+	// 正则匹配 img src，排除 http 开头的
+	// 匹配 src="xxx" 或 src='xxx'
+	reImg := regexp.MustCompile(`src=["']([^"']+)["']`)
+
+	// 调试：打印替换前的部分内容
+	if len(htmlContent) > 200 {
+		fmt.Printf("Debug: Before replace (snippet): %s\n", htmlContent[:200])
+	}
+
+	htmlContent = reImg.ReplaceAllStringFunc(htmlContent, func(match string) string {
+		// match: src="./images/foo.png"
+		fmt.Printf("Debug: Matched img tag: %s\n", match)
+
+		// 提取引号内的内容
+		parts := strings.SplitN(match, "=", 2)
+		if len(parts) != 2 {
+			return match
+		}
+		quote := parts[1][0:1]
+		src := parts[1][1 : len(parts[1])-1]
+
+		// 忽略绝对路径和网络路径
+		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, "http") {
+			fmt.Printf("Debug: Skipping abs/remote path: %s\n", src)
+			return match
+		}
+
+		// 拼接静态资源前缀
+		cleanDir := strings.ReplaceAll(articleDir, string(os.PathSeparator), "/")
+
+		// 处理 ./ 前缀
+		cleanSrc := src
+		if strings.HasPrefix(src, "./") {
+			cleanSrc = src[2:]
+		}
+
+		newSrc := fmt.Sprintf("/posts-static/%s/%s", cleanDir, cleanSrc)
+		newTag := fmt.Sprintf(`src=%s%s%s`, quote, newSrc, quote)
+
+		fmt.Printf("Debug: Replaced to: %s\n", newTag)
+		return newTag
+	})
+
+	// 调试：打印替换后的部分内容
+	// 查找是否包含 posts-static
+	if strings.Contains(htmlContent, "/posts-static/") {
+		fmt.Printf("Debug: Success! Found /posts-static/ in HTML\n")
+	} else {
+		fmt.Printf("Debug: Warning! /posts-static/ NOT found in HTML\n")
+	}
 
 	c.HTML(200, "article.html", gin.H{
 		"title":  article.Title,
@@ -322,50 +374,50 @@ func handleArticle(c *gin.Context) {
 
 // handlePublish 处理发布请求
 func handlePublish(c *gin.Context) {
-    id := c.Param("id")
-    var article *Article
+	id := c.Param("id")
+	var article *Article
 	for i := range articles {
 		if articles[i].ID == id {
 			article = &articles[i]
 			break
 		}
 	}
-    if article == nil {
+	if article == nil {
 		c.JSON(404, gin.H{"error": "文章不存在"})
 		return
 	}
-    
-    // 调用发布服务
-    // projectRoot 需要绝对路径? or relative is fine
-    // 我们用 .. 
-    result, err := services.PublishArticle(article.Path, projectRoot)
-    if err != nil {
-        c.JSON(500, gin.H{"error": err.Error()})
-        return
-    }
-    
-    // 渲染 Markdown 为 HTML 供复制
-    var buf strings.Builder
-    // 移除标题
-    publishContent := removeTitle(result.PublishContent)
-    md.Convert([]byte(publishContent), &buf)
-    
-    // 同样应用列表项优化
-    htmlContent := buf.String()
+
+	// 调用发布服务
+	// projectRoot 需要绝对路径? or relative is fine
+	// 我们用 ..
+	result, err := services.PublishArticle(article.Path, postsDir)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 渲染 Markdown 为 HTML 供复制
+	var buf strings.Builder
+	// 移除标题
+	publishContent := removeTitle(result.PublishContent)
+	md.Convert([]byte(publishContent), &buf)
+
+	// 同样应用列表项优化
+	htmlContent := buf.String()
 	reStrong := regexp.MustCompile(`<li><strong>([^<]+)</strong>`)
 	htmlContent = reStrong.ReplaceAllString(htmlContent, `<li><span class="li-bold">$1</span>`)
 	reLiContent := regexp.MustCompile(`<li>(.*?)</li>`)
 	htmlContent = reLiContent.ReplaceAllString(htmlContent, `<li><span class="li-text">$1</span></li>`)
-    
-    c.JSON(200, gin.H{
-        "success": true,
-        "content": map[string]string{
-            "markdown": result.PublishContent,
-            "html": htmlContent, // 返回已处理的 HTML
-        },
-        "uploaded": result.UploadedImages,
-        "logs": result.Errors,
-    })
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"content": map[string]string{
+			"markdown": result.PublishContent,
+			"html":     htmlContent, // 返回已处理的 HTML
+		},
+		"uploaded": result.UploadedImages,
+		"logs":     result.Errors,
+	})
 }
 
 // apiArticles API: 文章列表
@@ -411,4 +463,3 @@ func apiArticleDetail(c *gin.Context) {
 		RawMarkdown: string(content),
 	})
 }
-

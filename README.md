@@ -1,112 +1,173 @@
-# 微信公众号文章预览工具
+# Markdown Preview Tool (WeChat Edition)
 
-一个简单的 Golang Web 服务，用于预览 Markdown 文章并一键复制到微信公众号后台。
+个人自用的 专为微信公众号设计的 Markdown 预览与发布工具, 理论上支持各大平台。支持本地预览、一键格式化复制、自动图片上传等高级功能。
 
-## 功能特性
+## ✨ 核心功能
 
-- ✅ 自动扫描 `posts/` 目录下的所有 Markdown 文章
-- ✅ 按系列分组展示文章列表
-- ✅ 微信公众号风格样式（浅色主题，中文优化）
-- ✅ 一键复制文章（HTML 格式，带样式）
-- ✅ 响应式布局（PC + 移动端）
-- ✅ 支持 GFM（表格、代码高亮、任务列表）
+### 1. 微信风格渲染
+- **完美复刻**：默认样式专门针对微信公众号优化（字体、行高、段间距）
+- **代码高亮**：集成 `Monokai` 主题，采用 **Inline Style** 技术，确保粘贴到微信后台颜色不丢失
+- **脚注优化**：自动将 Markdown 链接转换为文末脚注，符合微信阅读习惯
+- **智能格式化**：自动移除文章标题（H1），列表项样式优化
 
-## 快速开始
+### 2. 图片自动化处理
+- **本地预览**：直接解析本地 Markdown 图片路径（如 `./images/demo.png`），所见即所得
+- **一键发布**：点击“发布/复制”按钮时：
+  - 自动扫描文中图片
+  - 自动上传至 GitHub CDN (需配置 token)
+  - 自动替换为 CDN 链接
+  - 自动生成最终 HTML 到剪贴板
 
-### 1. 安装依赖
+### 3. 高效工作流
+- **双重复制模式**：
+  - **复制原文**：仅应用样式，保持本地图片路径（适合本地调试）
+  - **发布/复制**：执行完整的发布流程（上传图片 -> 替换链接 -> 复制 HTML）
+- **即时反馈**：右下角浮动通知，实时显示上传进度和结果
+
+## 🚀 快速开始
+
+### 1. 配置环境 (可选)
+
+如果你需要图片上传功能，请参考下方的 [详细配置说明](#%EF%B8%8F-详细配置说明) 创建 `.env` 文件或设置环境变量。如果只是本地预览，可跳过此步。
+
+### 2. 运行工具
+
+本工具支持两种运行模式：
+
+#### 方式 A：源码运行 (推荐开发者)
 
 ```bash
-cd tools/wechat-preview
+# 自动安装依赖
 go mod tidy
-```
 
-### 2. 启动服务
-
-```bash
+# 默认运行（扫描当前目录）
 go run main.go
+
+# 指定扫描目录
+go run main.go -dir ../../posts
 ```
 
-### 3. 访问预览
+#### 方式 B：单文件运行 (推荐发布/分发)
 
-打开浏览器访问：[http://localhost:8080](http://localhost:8080)
+将工具编译为单个可执行文件，无需处理静态资源路径。
 
-## 使用方法
+1.  **编译**：
+    ```bash
+    go build -o preview main.go
+    ```
 
-1. **浏览文章列表**：首页按系列分组展示所有文章
-2. **查看文章详情**：点击文章卡片进入详情页
-3. **复制文章**：点击"复制文章"按钮
-4. **粘贴到微信**：打开微信公众号后台，直接粘贴
+2.  **运行**：
+    将生成的 `preview` (Windows下为 `preview.exe`) 文件放到任意 Markdown 目录中运行，或者通过命令行指定：
 
-## 注意事项
+    ```bash
+    # 进入你的文章目录，直接运行
+    /path/to/preview
+    
+    # 或者指定目录
+    /path/to/preview -dir /path/to/my/posts
+    
+    # 指定端口
+    /path/to/preview -port 9090
+    ```
 
-⚠️ **图片需要手动处理**
+访问 [http://localhost:8080](http://localhost:8080) 即可预览。
 
-微信公众号不支持外部图片链接，复制后需要：
-1. 在微信后台手动上传图片
-2. 替换文章中的图片占位符
+## ⚙️ 详细配置说明
 
-## 技术栈
+### 准备工作 (Prerequisites)
 
-- **后端**: Golang + Gin Framework
-- **Markdown 渲染**: goldmark + GFM 扩展
-- **前端**: 原生 HTML/CSS/JavaScript
+为了使用**一键发布/复制**功能，你需要准备：
 
-## 项目结构
+1.  **一个公开的 GitHub 仓库** (Public Repo)
+    -   用于存储文章中的图片。
+    -   必须是 Public 的，因为微信公众号后台无法直接读取 Private 仓库的图片。
+    -   示例：`yourname/assets`
+
+2.  **一个 GitHub Personal Access Token** (PAT)
+    -   权限要求：至少需要 `repo` 或 `public_repo` (针对公开仓库) 权限。
+    -   [点击这里生成 Token](https://github.com/settings/tokens)
+
+### 配置文件模板 (.env)
+
+你可以创建 `.env` 文件来配置环境变量，避免每次通过 CLI 传递。
+
+```ini
+# 文章根目录 (可选，如果不通过 -dir 指定)
+POSTS_DIR=../../posts
+
+# GitHub 配置 (可选，仅用于图片上传)
+GITHUB_TOKEN=your_github_token
+GITHUB_OWNER=your_username
+GITHUB_REPO=your_assets_repo
+GITHUB_BRANCH=main
+GITHUB_PATH_PREFIX=posts
+```
+
+### 环境变量详解
+
+| 变量名 | 必填 | 说明 | 示例 |
+| :--- | :--- | :--- | :--- |
+| `POSTS_DIR` | ❌ | 本地 Markdown 文章目录 (建议通过 CLI `-dir` 参数指定) | `../../posts` |
+| `GITHUB_TOKEN` | ✅ | 你的 GitHub Token (用于上传图片) | `ghp_xxxx` |
+| `GITHUB_OWNER` | ✅ | GitHub 用户名 | `hankmor` |
+| `GITHUB_REPO` | ✅ | 存放图片的仓库名 | `assets` |
+| `GITHUB_BRANCH` | ❌ | 分支名，默认为 `main` | `main` |
+| `GITHUB_PATH_PREFIX` | ❌ | **强烈推荐**。图片在仓库中的根目录前缀。<br>设置后，图片将上传到 `<prefix>/<relative-path-from-root>/...` | `posts` |
+
+---
+
+## 🔬 技术实现原理
+
+本工具通过以下步骤解决微信公众号编辑痛点：
+
+### 1. 样式隔离与内联 (CSS Inlining)
+微信公众号编辑器不支持外部 CSS，且对 `<style>` 标签支持有限。
+- **解决方案**：后端渲染时，利用 `goldmark-highlighting` 采用 **Inline Styles** 模式，将 CSS 样式直接写入每个 HTML 元素的 `style` 属性中。
+- **效果**：无论粘贴到哪里，颜色和样式都能完美保留。
+
+### 2. 智能图片托管 (Auto Image Hosting)
+本地写作时使用本地图片 `![demo](./images/demo.png)`，但这无法直接粘贴到网络编辑器。
+- **解决方案**：点击发布时，后端自动扫描本地图片引用 -> 检查 GitHub 仓库是否存在同名文件 -> 不存在则调用 GitHub API 上传 -> 获取 `raw.githubusercontent.com` 的 CDN 链接 -> 替换 Markdown 内容。
+- **结果**：剪贴板中的 HTML 包含的是可公开访问的网络图片链接。
+
+### 3. 内容管线 (Content Pipeline)
+1.  **Read**: 读取本地 Markdown 文件
+2.  **Pre-process**: 移除 H1 标题 (避免重复)，优化列表样式
+3.  **Upload & Replace**: 并发处理图片上传与链接替换
+4.  **Render**: 使用 Goldmark 渲染为 HTML (带 Inline Styles)
+5.  **Copy**: 前端通过 Selection API 复制格式化后的 HTML
+
+## 🛠 开发与贡献
+
+欢迎提交 PR 或 Issue！
+
+### 项目结构
 
 ```
-wechat-preview/
-├── main.go              # 主程序（文章扫描、API 服务）
-├── go.mod
-├── go.sum
-└── web/
-    ├── templates/
-    │   ├── list.html    # 文章列表页
-    │   └── article.html # 文章详情页
-    └── static/
-        ├── css/
-        │   └── wechat.css  # 微信风格样式
-        └── js/
-            └── copy.js     # 复制功能
+markdown-preview/
+├── main.go              # 服务端核心逻辑 (Gin + Goldmark)
+├── services/            # 业务逻辑 (图片上传、发布处理)
+├── config/              # 配置加载
+├── web/
+│   ├── templates/       # HTML 模板
+│   └── static/
+│       ├── css/         # wechat.css (核心样式)
+│       └── js/          # copy.js (前端交互)
 ```
 
-## 样式特点
+### 如何贡献
 
-### 字体
-- 中文：PingFang SC / Hiragino Sans GB / Microsoft YaHei
-- 英文：-apple-system / BlinkMacSystemFont
-- 代码：SF Mono / Monaco / Consolas
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
 
-### 排版
-- 字号：16px
-- 行高：1.75（适合中文阅读）
-- 段间距：15px
-- 标题层级：H1(24px) / H2(20px) / H3(18px)
+## ⚠️ 注意事项
 
-### 代码块
-- 背景：#f6f8fa
-- 边框圆角：6px
-- 字体：等宽字体
-- 语法高亮：通过 class 标记
-
-### 引用块
-- 左边框：4px 绿色 (#42b983)
-- 背景：#f9f9f9
-- 内边距：12px 16px
-
-## 常见问题
-
-### Q: 为什么图片复制后无法显示？
-A: 微信公众号不支持外部图片链接，需要手动上传图片到微信服务器。
-
-### Q: 可以修改样式吗？
-A: 可以编辑 `web/static/css/wechat.css` 文件自定义样式。
-
-### Q: 支持哪些 Markdown 语法？
-A: 支持标准 Markdown + GFM 扩展（表格、删除线、任务列表、自动链接）。
-
-### Q: 如何更改端口？
-A: 修改 `main.go` 中的 `r.Run(":8080")` 为其他端口。
+- **图片上传**：依赖 GitHub API，请确保你的网络环境可以访问 GitHub。
+- **Token 安全**：不要将 `.env` 文件提交到版本控制系统中。
 
 ## License
 
-MIT
+[Apache 2.0](LICENSE)

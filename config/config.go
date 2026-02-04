@@ -9,9 +9,11 @@ import (
 )
 
 type Config struct {
-	GitHubToken  string
-	GitHubRepo   string // e.g., "username/repo"
-	GitHubBranch string // default "main"
+	GitHubToken      string
+	GitHubRepo       string // e.g., "username/repo"
+	GitHubBranch     string // default "main"
+	GitHubPathPrefix string
+	PostsDir         string
 }
 
 var AppConfig *Config
@@ -21,13 +23,15 @@ func Load() {
 	_ = godotenv.Load()
 
 	AppConfig = &Config{
-		GitHubToken:  os.Getenv("GITHUB_TOKEN"),
-		GitHubRepo:   os.Getenv("GITHUB_REPO"),
-		GitHubBranch: os.Getenv("GITHUB_BRANCH"),
+		GitHubToken:      os.Getenv("GITHUB_TOKEN"),
+		GitHubRepo:       os.Getenv("GITHUB_REPO"),
+		GitHubBranch:     os.Getenv("GITHUB_BRANCH"),
+		GitHubPathPrefix: os.Getenv("GITHUB_PATH_PREFIX"),
+		PostsDir:         os.Getenv("POSTS_DIR"),
 	}
 
 	// 自动去除 .git 后缀
-	if before, ok :=strings.CutSuffix(AppConfig.GitHubRepo, ".git"); ok  {
+	if before, ok := strings.CutSuffix(AppConfig.GitHubRepo, ".git"); ok {
 		AppConfig.GitHubRepo = before
 	}
 
