@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/assets/css/wechat.css">
+</head>
+
+<body>
+    <div class="toolbar">
+        <a href="/" class="btn btn-back">← 返回列表</a>
+        <div class="actions">
+            <button onclick="copyArticle()" class="btn btn-copy">📋 复制原文</button>
+            <button onclick="handlePublish()" class="btn btn-publish"
+                style="background-color: #3b82f6; color: white; margin-left: 10px;">🚀 发布/复制</button>
+        </div>
+    </div>
+
+    <input type="hidden" id="articleId" value="{{ .id }}">
+
+    <div class="article-wrapper">
+        <div class="article-header">
+            <h1>{{ .title }}</h1>
+            <div class="article-meta">
+                <span class="series-tag">{{ .series }}</span>
+            </div>
+        </div>
+
+        <div class="article-content" id="articleContent">
+            {{ .html }}
+        </div>
+    </div>
+
+    <div class="notice">
+        <p><strong>💡 使用说明：</strong></p>
+        <ol>
+            <li>点击"复制文章"按钮</li>
+            <li>打开微信公众号后台，粘贴到编辑器</li>
+            <li>⚠️ <strong>图片需要手动上传</strong>（微信不支持外链图片）</li>
+            <li>🔗 <strong>外部链接</strong>已自动转换为文末脚注</li>
+        </ol>
+    </div>
+
+    <script src="/assets/js/copy.js"></script>
+    <script src="/assets/js/wechat-format.js"></script>
+</body>
+
+</html>
