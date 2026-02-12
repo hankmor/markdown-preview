@@ -1,45 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文章列表 - 微信公众号预览工具</title>
-    <style>
-        /* ... existing styles ... */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        /* ensure other styles are kept if not explicitly replaced, but here we replace little */
-    </style>
-    <!-- Add link to CSS if external, but it's inline in original. 
-         Wait, list.html has inline styles. Checking if it references static assets. 
-         It seems list.html has NO external static references in the snippet provided.
-         Ah, checking the previous view_file output for list.html...
-         It only has inline styles. No /static/ ref found.
-         Wait, let me double check line 1-115 of list.html from step 85.
-         It DOES NOT have any /static/ references.
-         So I don't need to update list.html?
-         Let me re-read step 85 output carefully.
-         ...
-         No <script> or <link> tags pointing to /static. 
-         So `list.html` modification might be unnecessary if it doesn't use static assets.
-         However, I should ensure consistency.
-         
-         Okay, looking at step 85 again. It has NO references to /static.
-         So I will skip list.html update.
-    -->
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文章列表 - 微信公众号预览工具</title>
     <style>
@@ -128,7 +90,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <h1>📝 文章列表</h1>

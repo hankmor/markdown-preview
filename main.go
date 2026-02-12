@@ -148,6 +148,9 @@ func main() {
 		r.StaticFS("/_local_fs", gin.Dir(projectRoot, false))
 	}
 
+	// 核心修改：映射 posts 目录为静态资源，用于预览本地图片
+	r.Static("/posts-static", postsDir)
+
 	// 4. 处理模板 (Embed)
 	// web/templates -> templates
 	templatesFS, _ := fs.Sub(embedFS, "web/templates")
